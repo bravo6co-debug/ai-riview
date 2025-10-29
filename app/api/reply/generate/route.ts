@@ -34,6 +34,89 @@ export async function OPTIONS(request: NextRequest) {
   })
 }
 
+// SHA-256 해시 생성 (Web Crypto API 사용)
+async function generateContentHash(content: string): Promise<string> {
+  const normalized = content
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ') // 공백 정규화
+
+  const encoder = new TextEncoder()
+  const data = encoder.encode(normalized)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+
+  return hashHex
+}
+
+// 캐시 조회
+async function lookupCache(contentHash: string) {
+  try {
+    const { data, error } = await supabase
+      .from('sentiment_analysis_cache')
+      .select('*')
+      .eq('content_hash', contentHash)
+      .single()
+
+    if (error || !data) {
+      return null // 캐시 미스
+    }
+
+    // 캐시 히트 - 통계 업데이트
+    await supabase
+      .from('sentiment_analysis_cache')
+      .update({
+        hit_count: data.hit_count + 1,
+        last_used_at: new Date().toISOString()
+      })
+      .eq('content_hash', contentHash)
+
+    console.log(`캐시 히트: ${contentHash.substring(0, 8)}... (hit_count: ${data.hit_count + 1})`)
+    return data
+  } catch (error) {
+    console.error('캐시 조회 오류:', error)
+    return null // 오류 시 캐시 미스로 처리
+  }
+}
+
+// 캐시에 저장
+async function storeInCache(cacheData: {
+  content_hash: string
+  content_preview: string
+  sentiment: string
+  sentiment_strength: number
+  topics: any[]
+  keywords: any[]
+  analysis_model: string
+}) {
+  try {
+    const { error } = await supabase
+      .from('sentiment_analysis_cache')
+      .insert({
+        content_hash: cacheData.content_hash,
+        content_preview: cacheData.content_preview,
+        sentiment: cacheData.sentiment,
+        sentiment_strength: cacheData.sentiment_strength,
+        topics: cacheData.topics,
+        keywords: cacheData.keywords,
+        analysis_model: cacheData.analysis_model,
+        hit_count: 0,
+        last_used_at: null
+      })
+
+    // 23505 = unique_violation (동시 요청으로 인한 중복 삽입)
+    if (error && error.code !== '23505') {
+      console.error('캐시 저장 오류:', error)
+    } else if (!error) {
+      console.log(`캐시 저장: ${cacheData.content_hash.substring(0, 8)}...`)
+    }
+  } catch (error) {
+    console.error('캐시 저장 실패:', error)
+    // 캐시 저장 실패해도 메인 플로우는 계속 진행
+  }
+}
+
 // 간단한 감정 분석 (룰 기반)
 function quickSentimentAnalysis(content: string) {
   const positiveKeywords = ['맛있', '좋아', '친절', '깨끗', '추천', '만족', '최고', '완벽', '훌륭']
@@ -190,8 +273,37 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 감정 분석
-    const analysis = quickSentimentAnalysis(review_content)
+    // 콘텐츠 해시 생성
+    const contentHash = await generateContentHash(review_content)
+
+    // 캐시 조회
+    const cachedAnalysis = await lookupCache(contentHash)
+
+    let analysis
+    let analysisSource = 'cache'
+
+    if (cachedAnalysis) {
+      // 캐시 히트 - 저장된 결과 사용
+      analysis = {
+        sentiment: cachedAnalysis.sentiment,
+        strength: cachedAnalysis.sentiment_strength
+      }
+    } else {
+      // 캐시 미스 - 새로운 분석 수행
+      analysis = quickSentimentAnalysis(review_content)
+      analysisSource = 'rule-based'
+
+      // 캐시에 저장 (비동기, 결과를 기다리지 않음)
+      storeInCache({
+        content_hash: contentHash,
+        content_preview: review_content.substring(0, 100),
+        sentiment: analysis.sentiment,
+        sentiment_strength: analysis.strength,
+        topics: [],
+        keywords: [],
+        analysis_model: 'rule-based'
+      }).catch(err => console.error('캐시 저장 실패:', err))
+    }
 
     // 답글 생성
     let generatedReply

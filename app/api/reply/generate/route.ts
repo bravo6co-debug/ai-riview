@@ -23,17 +23,6 @@ async function verifyToken(token: string) {
   }
 }
 
-export async function OPTIONS(request: NextRequest) {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  })
-}
-
 // SHA-256 해시 생성 (Web Crypto API 사용)
 async function generateContentHash(content: string): Promise<string> {
   const normalized = content

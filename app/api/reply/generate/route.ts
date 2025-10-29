@@ -12,6 +12,13 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 })
 
+// CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
+
 // JWT 토큰 검증
 async function verifyToken(token: string) {
   try {
@@ -21,6 +28,13 @@ async function verifyToken(token: string) {
   } catch {
     return null
   }
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
+  })
 }
 
 // SHA-256 해시 생성 (Web Crypto API 사용)
@@ -226,7 +240,7 @@ export async function POST(request: NextRequest) {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
         { success: false, error: '인증이 필요합니다.' },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       )
     }
 
@@ -236,7 +250,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { success: false, error: '유효하지 않은 토큰입니다.' },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       )
     }
 
@@ -249,7 +263,7 @@ export async function POST(request: NextRequest) {
       console.error('JSON 파싱 오류:', parseError)
       return NextResponse.json(
         { success: false, error: '잘못된 요청 형식입니다.' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       )
     }
 
@@ -258,7 +272,7 @@ export async function POST(request: NextRequest) {
     if (!review_content || !review_content.trim()) {
       return NextResponse.json(
         { success: false, error: '리뷰 내용을 입력해주세요.' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       )
     }
 
@@ -336,12 +350,12 @@ export async function POST(request: NextRequest) {
       sentiment_strength: analysis.strength,
       topics: [],
       keywords: [],
-    })
+    }, { headers: corsHeaders })
   } catch (error) {
     console.error('답글 생성 오류:', error)
     return NextResponse.json(
       { success: false, error: '서버 오류가 발생했습니다.' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     )
   }
 }

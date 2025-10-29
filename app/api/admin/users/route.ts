@@ -11,6 +11,13 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+// CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
+
 // JWT 토큰 검증
 async function verifyToken(token: string) {
   try {
@@ -22,6 +29,13 @@ async function verifyToken(token: string) {
   }
 }
 
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
+  })
+}
+
 // GET: 사용자 목록 조회 (관리자만)
 export async function GET(request: NextRequest) {
   try {
@@ -30,7 +44,7 @@ export async function GET(request: NextRequest) {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
         { success: false, error: '인증이 필요합니다.' },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       )
     }
 
@@ -40,7 +54,7 @@ export async function GET(request: NextRequest) {
     if (!user || !user.is_admin) {
       return NextResponse.json(
         { success: false, error: '관리자 권한이 필요합니다.' },
-        { status: 403 }
+        { status: 403, headers: corsHeaders }
       )
     }
 
@@ -54,7 +68,7 @@ export async function GET(request: NextRequest) {
       console.error('사용자 조회 오류:', usersError)
       return NextResponse.json(
         { success: false, error: '사용자 조회 실패' },
-        { status: 500 }
+        { status: 500, headers: corsHeaders }
       )
     }
 
@@ -76,12 +90,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       users: usersWithStats,
-    })
+    }, { headers: corsHeaders })
   } catch (error) {
     console.error('사용자 목록 조회 오류:', error)
     return NextResponse.json(
       { success: false, error: '서버 오류가 발생했습니다.' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     )
   }
 }
@@ -94,7 +108,7 @@ export async function POST(request: NextRequest) {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
         { success: false, error: '인증이 필요합니다.' },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       )
     }
 
@@ -104,7 +118,7 @@ export async function POST(request: NextRequest) {
     if (!user || !user.is_admin) {
       return NextResponse.json(
         { success: false, error: '관리자 권한이 필요합니다.' },
-        { status: 403 }
+        { status: 403, headers: corsHeaders }
       )
     }
 
@@ -115,7 +129,7 @@ export async function POST(request: NextRequest) {
     if (!username || !password) {
       return NextResponse.json(
         { success: false, error: '아이디와 비밀번호를 입력해주세요.' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       )
     }
 
@@ -129,7 +143,7 @@ export async function POST(request: NextRequest) {
     if (existingUser) {
       return NextResponse.json(
         { success: false, error: '이미 존재하는 아이디입니다.' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       )
     }
 
@@ -151,7 +165,7 @@ export async function POST(request: NextRequest) {
       console.error('사용자 생성 오류:', createError)
       return NextResponse.json(
         { success: false, error: '사용자 생성 실패' },
-        { status: 500 }
+        { status: 500, headers: corsHeaders }
       )
     }
 
@@ -159,7 +173,7 @@ export async function POST(request: NextRequest) {
       success: true,
       user: newUser,
       message: '사용자가 생성되었습니다.',
-    })
+    }, { headers: corsHeaders })
   } catch (error) {
     console.error('사용자 생성 오류:', error)
     return NextResponse.json(
@@ -177,7 +191,7 @@ export async function DELETE(request: NextRequest) {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
         { success: false, error: '인증이 필요합니다.' },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       )
     }
 
@@ -187,7 +201,7 @@ export async function DELETE(request: NextRequest) {
     if (!user || !user.is_admin) {
       return NextResponse.json(
         { success: false, error: '관리자 권한이 필요합니다.' },
-        { status: 403 }
+        { status: 403, headers: corsHeaders }
       )
     }
 
@@ -198,7 +212,7 @@ export async function DELETE(request: NextRequest) {
     if (!userId) {
       return NextResponse.json(
         { success: false, error: '사용자 ID가 필요합니다.' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       )
     }
 
@@ -206,7 +220,7 @@ export async function DELETE(request: NextRequest) {
     if (userId === user.id) {
       return NextResponse.json(
         { success: false, error: '자기 자신은 삭제할 수 없습니다.' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       )
     }
 
@@ -220,14 +234,14 @@ export async function DELETE(request: NextRequest) {
       console.error('사용자 삭제 오류:', deleteError)
       return NextResponse.json(
         { success: false, error: '사용자 삭제 실패' },
-        { status: 500 }
+        { status: 500, headers: corsHeaders }
       )
     }
 
     return NextResponse.json({
       success: true,
       message: '사용자가 삭제되었습니다.',
-    })
+    }, { headers: corsHeaders })
   } catch (error) {
     console.error('사용자 삭제 오류:', error)
     return NextResponse.json(

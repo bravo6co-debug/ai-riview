@@ -26,6 +26,10 @@ yarn-error.log*
 .env*.local
 .env
 
+# Secret files
+openaikey.txt
+*.key
+
 # Vercel
 .vercel
 

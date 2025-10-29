@@ -13,7 +13,10 @@
       "Bash(git push:*)",
       "Bash(git remote set-url:*)",
       "Bash(cat:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npx vercel --prod --yes --token $env:VERCEL_TOKEN)",
+      "Bash(npx vercel:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []

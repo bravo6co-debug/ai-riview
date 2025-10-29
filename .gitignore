@@ -47,3 +47,5 @@ venv/
 ENV/
 env/
 /api/
+
+.vercel

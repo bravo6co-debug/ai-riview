@@ -3,6 +3,9 @@ import { createClient } from '@supabase/supabase-js'
 import { jwtVerify } from 'jose'
 import * as bcrypt from 'bcryptjs'
 
+// Force Node.js runtime (required for bcryptjs)
+export const runtime = 'nodejs'
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!

@@ -23,7 +23,8 @@ export function middleware(request: NextRequest) {
   return response
 }
 
-// API 라우트에만 적용
+// API 라우트에만 적용 - Next.js matcher 패턴
+// /api로 시작하는 모든 경로에 적용
 export const config = {
-  matcher: '/api/:path*',
+  matcher: ['/api/:path*'],
 }

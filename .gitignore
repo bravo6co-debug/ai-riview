@@ -37,7 +37,7 @@ openaikey.txt
 *.tsbuildinfo
 next-env.d.ts
 
-# Python
+# Python (old API - not used)
 __pycache__/
 *.py[cod]
 *$py.class
@@ -46,3 +46,4 @@ __pycache__/
 venv/
 ENV/
 env/
+/api/

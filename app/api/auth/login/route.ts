@@ -8,6 +8,21 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+// CORS headers helper
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
+
+// Handle OPTIONS request for CORS preflight
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
+  })
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -16,7 +31,7 @@ export async function POST(request: NextRequest) {
     if (!username || !password) {
       return NextResponse.json(
         { success: false, error: '아이디와 비밀번호를 입력해주세요.' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       )
     }
 
@@ -30,7 +45,7 @@ export async function POST(request: NextRequest) {
     if (error || !users || users.length === 0) {
       return NextResponse.json(
         { success: false, error: '아이디 또는 비밀번호가 잘못되었습니다.' },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       )
     }
 
@@ -41,7 +56,7 @@ export async function POST(request: NextRequest) {
     if (!isPasswordValid) {
       return NextResponse.json(
         { success: false, error: '아이디 또는 비밀번호가 잘못되었습니다.' },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       )
     }
 
@@ -71,12 +86,12 @@ export async function POST(request: NextRequest) {
         username: user.username,
         is_admin: user.is_admin,
       },
-    })
+    }, { headers: corsHeaders })
   } catch (error) {
     console.error('로그인 오류:', error)
     return NextResponse.json(
       { success: false, error: '서버 오류가 발생했습니다.' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     )
   }
 }

@@ -3,6 +3,11 @@ import { createClient } from '@supabase/supabase-js'
 import { jwtVerify } from 'jose'
 import OpenAI from 'openai'
 
+// Force Node.js runtime for bcryptjs
+export const runtime = 'nodejs'
+// Force dynamic rendering (prevent static optimization)
+export const dynamic = 'force-dynamic'
+
 // Helper function to get Supabase client
 function getSupabaseClient() {
   return createClient(

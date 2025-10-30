@@ -5,6 +5,8 @@ import * as bcrypt from 'bcryptjs'
 
 // Force Node.js runtime (required for bcryptjs)
 export const runtime = 'nodejs'
+// Force dynamic rendering (prevent static optimization)
+export const dynamic = 'force-dynamic'
 
 // Helper function to get Supabase client
 function getSupabaseClient() {

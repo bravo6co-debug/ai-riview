@@ -6,10 +6,13 @@ import * as bcrypt from 'bcryptjs'
 // Force Node.js runtime (required for bcryptjs)
 export const runtime = 'nodejs'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+// Helper function to get Supabase client
+function getSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 // CORS headers helper
 const corsHeaders = {
@@ -28,6 +31,7 @@ export async function OPTIONS() {
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = getSupabaseClient()
     const body = await request.json()
     const { username, password } = body
 

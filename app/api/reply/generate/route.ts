@@ -3,14 +3,20 @@ import { createClient } from '@supabase/supabase-js'
 import { jwtVerify } from 'jose'
 import OpenAI from 'openai'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+// Helper function to get Supabase client
+function getSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-})
+// Helper function to get OpenAI client
+function getOpenAIClient() {
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY!,
+  })
+}
 
 // CORS headers
 const corsHeaders = {
@@ -56,6 +62,7 @@ async function generateContentHash(content: string): Promise<string> {
 // 캐시 조회
 async function lookupCache(contentHash: string) {
   try {
+    const supabase = getSupabaseClient()
     const { data, error } = await supabase
       .from('sentiment_analysis_cache')
       .select('*')
@@ -94,6 +101,7 @@ async function storeInCache(cacheData: {
   analysis_model: string
 }) {
   try {
+    const supabase = getSupabaseClient()
     const { error } = await supabase
       .from('sentiment_analysis_cache')
       .insert({
@@ -199,6 +207,7 @@ async function generateReplyWithAI(
 답글만 작성하세요 (부가 설명 없이):`
 
   try {
+    const openai = getOpenAIClient()
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -329,6 +338,7 @@ export async function POST(request: NextRequest) {
 
     // 이력 저장
     try {
+      const supabase = getSupabaseClient()
       await supabase.from('reply_history').insert({
         user_id: user.id as string,
         review_content,

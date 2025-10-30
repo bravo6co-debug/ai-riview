@@ -6,10 +6,13 @@ import * as bcrypt from 'bcryptjs'
 // Force Node.js runtime (required for bcryptjs)
 export const runtime = 'nodejs'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+// Helper function to get Supabase client
+function getSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 // CORS headers
 const corsHeaders = {
@@ -39,6 +42,7 @@ export async function OPTIONS() {
 // GET: 사용자 목록 조회 (관리자만)
 export async function GET(request: NextRequest) {
   try {
+    const supabase = getSupabaseClient()
     // JWT 토큰 검증
     const authHeader = request.headers.get('Authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -103,6 +107,7 @@ export async function GET(request: NextRequest) {
 // POST: 새 사용자 생성 (관리자만)
 export async function POST(request: NextRequest) {
   try {
+    const supabase = getSupabaseClient()
     // JWT 토큰 검증
     const authHeader = request.headers.get('Authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -186,6 +191,7 @@ export async function POST(request: NextRequest) {
 // DELETE: 사용자 삭제 (관리자만)
 export async function DELETE(request: NextRequest) {
   try {
+    const supabase = getSupabaseClient()
     // JWT 토큰 검증
     const authHeader = request.headers.get('Authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

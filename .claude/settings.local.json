@@ -17,7 +17,8 @@
       "Bash(npx vercel --prod --yes --token $env:VERCEL_TOKEN)",
       "Bash(npx vercel:*)",
       "Bash(node:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

@@ -7,14 +7,8 @@ import * as bcrypt from 'bcryptjs'
 export const runtime = 'nodejs'
 // Force dynamic rendering (prevent static optimization)
 export const dynamic = 'force-dynamic'
-
-// Helper function to get Supabase client
-function getSupabaseClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
+// Explicitly declare revalidation as false
+export const revalidate = false
 
 // CORS headers helper
 const corsHeaders = {
@@ -33,7 +27,12 @@ export async function OPTIONS() {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabaseClient()
+    // Initialize Supabase client inside the function
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
     const body = await request.json()
     const { username, password } = body
 

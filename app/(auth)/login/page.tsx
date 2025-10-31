@@ -31,8 +31,15 @@ export default function LoginPage() {
         localStorage.setItem('token', data.token)
         localStorage.setItem('user', JSON.stringify(data.user))
 
-        // 대시보드로 이동
-        router.push('/')
+        // 사용자 역할에 따라 적절한 대시보드로 이동
+        const userRole = data.user.user_role
+        if (userRole === 'super_admin') {
+          router.push('/super-admin')
+        } else if (userRole === 'sub_admin') {
+          router.push('/sub-admin')
+        } else {
+          router.push('/') // customer
+        }
       } else {
         setError(data.error || '로그인에 실패했습니다.')
       }

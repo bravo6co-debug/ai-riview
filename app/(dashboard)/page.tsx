@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import ChangePasswordModal from '@/components/ChangePasswordModal'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -11,6 +12,7 @@ export default function DashboardPage() {
   const [sentiment, setSentiment] = useState<string | null>(null)
   const [user, setUser] = useState<any>(null)
   const [copySuccess, setCopySuccess] = useState(false)
+  const [showChangePassword, setShowChangePassword] = useState(false)
 
   useEffect(() => {
     // 로그인 확인
@@ -126,6 +128,12 @@ export default function DashboardPage() {
             >
               ⚙️ 설정
             </button>
+            <button
+              onClick={() => setShowChangePassword(true)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              🔒 비밀번호 변경
+            </button>
             {user.is_admin && (
               <button
                 onClick={() => router.push('/admin')}
@@ -216,6 +224,12 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
+      />
     </div>
   )
 }

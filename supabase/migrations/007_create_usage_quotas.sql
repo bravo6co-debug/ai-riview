@@ -27,6 +27,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger to auto-update updated_at
+DROP TRIGGER IF EXISTS update_usage_quotas_updated_at ON usage_quotas;
 CREATE TRIGGER update_usage_quotas_updated_at
     BEFORE UPDATE ON usage_quotas
     FOR EACH ROW

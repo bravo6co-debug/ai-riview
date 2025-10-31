@@ -11,6 +11,12 @@ ALTER TABLE usage_quotas ENABLE ROW LEVEL SECURITY;
 -- RLS Policies for api_usage_logs
 -- ============================================
 
+-- Drop existing policies first
+DROP POLICY IF EXISTS "Users can view own usage logs" ON api_usage_logs;
+DROP POLICY IF EXISTS "Super admins can view all usage logs" ON api_usage_logs;
+DROP POLICY IF EXISTS "Sub admins can view their customers usage logs" ON api_usage_logs;
+DROP POLICY IF EXISTS "Service role can manage usage logs" ON api_usage_logs;
+
 -- Users can view their own usage logs
 CREATE POLICY "Users can view own usage logs" ON api_usage_logs
     FOR SELECT
@@ -47,6 +53,12 @@ CREATE POLICY "Service role can manage usage logs" ON api_usage_logs
 -- ============================================
 -- RLS Policies for usage_quotas
 -- ============================================
+
+-- Drop existing policies first
+DROP POLICY IF EXISTS "Users can view own quotas" ON usage_quotas;
+DROP POLICY IF EXISTS "Super admins can manage all quotas" ON usage_quotas;
+DROP POLICY IF EXISTS "Sub admins can manage customers quotas" ON usage_quotas;
+DROP POLICY IF EXISTS "Service role can manage quotas" ON usage_quotas;
 
 -- Users can view their own quotas
 CREATE POLICY "Users can view own quotas" ON usage_quotas

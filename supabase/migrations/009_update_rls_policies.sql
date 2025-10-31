@@ -100,7 +100,9 @@ CREATE POLICY "Service role can manage quotas" ON usage_quotas
 -- Drop old conflicting policies if they exist
 DROP POLICY IF EXISTS "Users can view own profile" ON users;
 DROP POLICY IF EXISTS "Super admins can view all users" ON users;
+DROP POLICY IF EXISTS "Super admins can manage all users" ON users;
 DROP POLICY IF EXISTS "Sub admins can view their customers" ON users;
+DROP POLICY IF EXISTS "Sub admins can manage their customers" ON users;
 
 -- Users can view own profile
 CREATE POLICY "Users can view own profile" ON users
@@ -137,6 +139,8 @@ CREATE POLICY "Sub admins can manage their customers" ON users
 DROP POLICY IF EXISTS "Users can view own reply history" ON reply_history;
 DROP POLICY IF EXISTS "Super admins can view all reply history" ON reply_history;
 DROP POLICY IF EXISTS "Sub admins can view their customers reply history" ON reply_history;
+DROP POLICY IF EXISTS "Sub admins can view customers reply history" ON reply_history;
+DROP POLICY IF EXISTS "Service role can manage reply history" ON reply_history;
 
 -- Users can view their own reply history
 CREATE POLICY "Users can view own reply history" ON reply_history

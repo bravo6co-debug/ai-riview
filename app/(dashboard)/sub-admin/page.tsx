@@ -144,7 +144,7 @@ export default function SubAdminDashboard() {
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">하위 관리자 대시보드</h1>
+            <h1 className="text-2xl font-bold text-gray-900">관리자 대시보드</h1>
             <p className="text-sm text-gray-600">
               {currentUser?.username}님 ({currentUser?.company_name || '회사명 없음'})
             </p>
@@ -249,6 +249,11 @@ export default function SubAdminDashboard() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">고객 추가</h3>
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                💡 초기 비밀번호는 <strong>1234!@#$</strong>로 자동 설정됩니다.
+              </p>
+            </div>
             <form onSubmit={handleAddCustomer}>
               <div className="space-y-4">
                 <div>

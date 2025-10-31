@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
 
     if (!user || user.user_role !== 'sub_admin') {
       return NextResponse.json(
-        { success: false, error: '하위 관리자 권한이 필요합니다.' },
+        { success: false, error: '관리자 권한이 필요합니다.' },
         { status: 403, headers: corsHeaders }
       )
     }
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
 
     if (!user || user.user_role !== 'sub_admin') {
       return NextResponse.json(
-        { success: false, error: '하위 관리자 권한이 필요합니다.' },
+        { success: false, error: '관리자 권한이 필요합니다.' },
         { status: 403, headers: corsHeaders }
       )
     }
@@ -208,7 +208,7 @@ export async function DELETE(request: NextRequest) {
 
     if (!user || user.user_role !== 'sub_admin') {
       return NextResponse.json(
-        { success: false, error: '하위 관리자 권한이 필요합니다.' },
+        { success: false, error: '관리자 권한이 필요합니다.' },
         { status: 403, headers: corsHeaders }
       )
     }

@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('Failed to fetch sub-admins:', error)
       return NextResponse.json(
-        { success: false, error: '하위 관리자 목록을 불러올 수 없습니다.' },
+        { success: false, error: '관리자 목록을 불러올 수 없습니다.' },
         { status: 500, headers: corsHeaders }
       )
     }
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
     if (createError) {
       console.error('Failed to create sub-admin:', createError)
       return NextResponse.json(
-        { success: false, error: '하위 관리자 생성에 실패했습니다.' },
+        { success: false, error: '관리자 생성에 실패했습니다.' },
         { status: 500, headers: corsHeaders }
       )
     }
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `하위 관리자가 추가되었습니다. 초기 비밀번호: ${defaultPassword}`,
+      message: `관리자가 추가되었습니다. 초기 비밀번호: ${defaultPassword}`,
       subAdmin: {
         id: newSubAdmin.id,
         username: newSubAdmin.username,
@@ -229,14 +229,14 @@ export async function DELETE(request: NextRequest) {
     if (deleteError) {
       console.error('Failed to delete sub-admin:', deleteError)
       return NextResponse.json(
-        { success: false, error: '하위 관리자 삭제에 실패했습니다.' },
+        { success: false, error: '관리자 삭제에 실패했습니다.' },
         { status: 500, headers: corsHeaders }
       )
     }
 
     return NextResponse.json({
       success: true,
-      message: '하위 관리자가 삭제되었습니다.',
+      message: '관리자가 삭제되었습니다.',
     }, { headers: corsHeaders })
   } catch (error) {
     console.error('Sub-admins DELETE error:', error)

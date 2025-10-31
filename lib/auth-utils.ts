@@ -97,7 +97,7 @@ export function canViewUser(
 export function getRoleLabel(role: UserRole): string {
   const labels: Record<UserRole, string> = {
     super_admin: '총 관리자',
-    sub_admin: '하위 관리자',
+    sub_admin: '관리자',
     customer: '고객',
   }
   return labels[role] || role

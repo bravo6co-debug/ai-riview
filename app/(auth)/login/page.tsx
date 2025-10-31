@@ -55,7 +55,7 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            네이버 플레이스 답글 생성기
+            네이버 플레이스 리뷰 답글 999플러스 서비스
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             AI 기반 리뷰 답글 자동 생성 서비스

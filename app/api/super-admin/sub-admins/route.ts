@@ -109,11 +109,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { username, password, company_name, contact_email, contact_phone, notes } = body
+    const { username, company_name, contact_phone, notes } = body
 
-    if (!username || !password) {
+    if (!username) {
       return NextResponse.json(
-        { success: false, error: '아이디와 비밀번호는 필수입니다.' },
+        { success: false, error: '아이디는 필수입니다.' },
         { status: 400, headers: corsHeaders }
       )
     }
@@ -134,8 +134,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 10)
+    // 초기 비밀번호: 1234!@#$
+    const defaultPassword = '1234!@#$'
+    const passwordHash = await bcrypt.hash(defaultPassword, 10)
 
     // Create sub-admin
     const { data: newSubAdmin, error: createError } = await supabase
@@ -146,7 +147,6 @@ export async function POST(request: NextRequest) {
         user_role: 'sub_admin',
         is_admin: false, // DEPRECATED field
         company_name: company_name || null,
-        contact_email: contact_email || null,
         contact_phone: contact_phone || null,
         notes: notes || null,
         is_active: true,
@@ -167,12 +167,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      message: `하위 관리자가 추가되었습니다. 초기 비밀번호: ${defaultPassword}`,
       subAdmin: {
         id: newSubAdmin.id,
         username: newSubAdmin.username,
         user_role: newSubAdmin.user_role,
         company_name: newSubAdmin.company_name,
-        contact_email: newSubAdmin.contact_email,
         is_active: newSubAdmin.is_active,
         created_at: newSubAdmin.created_at,
       },

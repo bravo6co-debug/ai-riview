@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import ChangePasswordModal from '@/components/ChangePasswordModal'
 
 interface User {
   id: string
@@ -32,11 +33,11 @@ export default function SuperAdminDashboard() {
   const [customers, setCustomers] = useState<User[]>([])
   const [usageSummary, setUsageSummary] = useState<UsageSummary | null>(null)
   const [showAddSubAdmin, setShowAddSubAdmin] = useState(false)
+  const [showChangePassword, setShowChangePassword] = useState(false)
   const [newSubAdmin, setNewSubAdmin] = useState({
     username: '',
-    password: '',
     company_name: '',
-    contact_email: '',
+    contact_phone: '',
   })
 
   useEffect(() => {
@@ -126,9 +127,9 @@ export default function SuperAdminDashboard() {
       const data = await response.json()
 
       if (data.success) {
-        alert('하위 관리자가 추가되었습니다.')
+        alert(data.message || '하위 관리자가 추가되었습니다.')
         setShowAddSubAdmin(false)
-        setNewSubAdmin({ username: '', password: '', company_name: '', contact_email: '' })
+        setNewSubAdmin({ username: '', company_name: '', contact_phone: '' })
         // Reload data
         if (token) {
           loadDashboardData(token)
@@ -159,12 +160,20 @@ export default function SuperAdminDashboard() {
             <h1 className="text-2xl font-bold text-gray-900">슈퍼 관리자 대시보드</h1>
             <p className="text-sm text-gray-600">{currentUser?.username}님 환영합니다</p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-          >
-            로그아웃
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowChangePassword(true)}
+              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+            >
+              비밀번호 변경
+            </button>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              로그아웃
+            </button>
+          </div>
         </div>
       </header>
 
@@ -346,20 +355,6 @@ export default function SuperAdminDashboard() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    비밀번호
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded"
-                    value={newSubAdmin.password}
-                    onChange={(e) =>
-                      setNewSubAdmin({ ...newSubAdmin, password: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     회사명
                   </label>
                   <input
@@ -373,14 +368,14 @@ export default function SuperAdminDashboard() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    이메일
+                    전화번호
                   </label>
                   <input
-                    type="email"
+                    type="tel"
                     className="w-full px-3 py-2 border border-gray-300 rounded"
-                    value={newSubAdmin.contact_email}
+                    value={newSubAdmin.contact_phone}
                     onChange={(e) =>
-                      setNewSubAdmin({ ...newSubAdmin, contact_email: e.target.value })
+                      setNewSubAdmin({ ...newSubAdmin, contact_phone: e.target.value })
                     }
                   />
                 </div>
@@ -404,6 +399,12 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
+      />
     </div>
   )
 }

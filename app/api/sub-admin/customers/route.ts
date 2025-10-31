@@ -110,11 +110,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { username, password, business_name, business_type, brand_tone } = body
+    const { username, business_name, business_type, brand_tone } = body
 
-    if (!username || !password) {
+    if (!username) {
       return NextResponse.json(
-        { success: false, error: '아이디와 비밀번호는 필수입니다.' },
+        { success: false, error: '아이디는 필수입니다.' },
         { status: 400, headers: corsHeaders }
       )
     }
@@ -135,8 +135,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 10)
+    // 초기 비밀번호: 1234!@#$
+    const defaultPassword = '1234!@#$'
+    const passwordHash = await bcrypt.hash(defaultPassword, 10)
 
     // Create customer
     const { data: newCustomer, error: createError } = await supabase
@@ -172,6 +173,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      message: `고객이 추가되었습니다. 초기 비밀번호: ${defaultPassword}`,
       customer: {
         id: newCustomer.id,
         username: newCustomer.username,

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import ChangePasswordModal from '@/components/ChangePasswordModal'
 
 interface Customer {
   id: string
@@ -18,10 +19,12 @@ export default function SubAdminDashboard() {
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [customers, setCustomers] = useState<Customer[]>([])
   const [showAddCustomer, setShowAddCustomer] = useState(false)
+  const [showChangePassword, setShowChangePassword] = useState(false)
   const [newCustomer, setNewCustomer] = useState({
     username: '',
-    password: '',
     business_name: '',
+    business_type: '',
+    brand_tone: '',
   })
 
   useEffect(() => {
@@ -86,9 +89,9 @@ export default function SubAdminDashboard() {
       const data = await response.json()
 
       if (data.success) {
-        alert('고객이 추가되었습니다.')
+        alert(data.message || '고객이 추가되었습니다.')
         setShowAddCustomer(false)
-        setNewCustomer({ username: '', password: '', business_name: '' })
+        setNewCustomer({ username: '', business_name: '', business_type: '', brand_tone: '' })
         if (token) {
           loadCustomers(token)
         }
@@ -148,12 +151,20 @@ export default function SubAdminDashboard() {
               {currentUser?.username}님 ({currentUser?.company_name || '회사명 없음'})
             </p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-          >
-            로그아웃
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowChangePassword(true)}
+              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+            >
+              비밀번호 변경
+            </button>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              로그아웃
+            </button>
+          </div>
         </div>
       </header>
 
@@ -258,20 +269,6 @@ export default function SubAdminDashboard() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    비밀번호
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded"
-                    value={newCustomer.password}
-                    onChange={(e) =>
-                      setNewCustomer({ ...newCustomer, password: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     업체명
                   </label>
                   <input
@@ -282,6 +279,43 @@ export default function SubAdminDashboard() {
                       setNewCustomer({ ...newCustomer, business_name: e.target.value })
                     }
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    업종
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded"
+                    value={newCustomer.business_type}
+                    onChange={(e) =>
+                      setNewCustomer({ ...newCustomer, business_type: e.target.value })
+                    }
+                  >
+                    <option value="">선택하세요</option>
+                    <option value="cafe">카페</option>
+                    <option value="restaurant">음식점</option>
+                    <option value="beauty">미용실</option>
+                    <option value="retail">소매점</option>
+                    <option value="service">서비스업</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    브랜드 톤
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded"
+                    value={newCustomer.brand_tone}
+                    onChange={(e) =>
+                      setNewCustomer({ ...newCustomer, brand_tone: e.target.value })
+                    }
+                  >
+                    <option value="">선택하세요</option>
+                    <option value="friendly">친근한</option>
+                    <option value="professional">전문적인</option>
+                    <option value="casual">캐주얼한</option>
+                    <option value="formal">격식있는</option>
+                  </select>
                 </div>
               </div>
               <div className="mt-6 flex gap-2">
@@ -303,6 +337,12 @@ export default function SubAdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
+      />
     </div>
   )
 }

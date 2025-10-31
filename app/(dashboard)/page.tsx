@@ -42,8 +42,7 @@ export default function DashboardPage() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          review_content: reviewContent,
-          brand_context: '카페'
+          review_content: reviewContent
         })
       })
 
@@ -116,6 +115,12 @@ export default function DashboardPage() {
             네이버 플레이스 답글 생성기
           </h1>
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push('/settings')}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              ⚙️ 설정
+            </button>
             {user.is_admin && (
               <button
                 onClick={() => router.push('/admin')}

@@ -18,7 +18,10 @@
       "Bash(npx vercel:*)",
       "Bash(node:*)",
       "Bash(dir:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(find:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []

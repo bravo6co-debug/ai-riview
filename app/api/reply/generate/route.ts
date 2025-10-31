@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { jwtVerify } from 'jose'
 import OpenAI from 'openai'
+import { getBusinessTypeLabel, getBrandToneLabel, getToneGuide } from '@/lib/constants'
 
 // Force Node.js runtime for bcryptjs
 export const runtime = 'nodejs'
@@ -162,7 +163,11 @@ function quickSentimentAnalysis(content: string) {
 async function generateReplyWithAI(
   reviewContent: string,
   sentiment: string,
-  brandContext: string
+  userProfile: {
+    business_name: string
+    business_type: string
+    brand_tone: string
+  }
 ) {
   const systemPrompts: Record<string, string> = {
     positive: `당신은 한국 프랜차이즈 매장의 전문적이고 진심어린 고객 서비스 담당자입니다.
@@ -202,13 +207,24 @@ async function generateReplyWithAI(
 - 정중하고 따뜻한 톤`,
   }
 
+  // 사용자 프로필 정보를 라벨로 변환
+  const businessTypeLabel = getBusinessTypeLabel(userProfile.business_type)
+  const brandToneLabel = getBrandToneLabel(userProfile.brand_tone)
+  const toneGuide = getToneGuide(userProfile.brand_tone)
+
   const prompt = `[리뷰 내용]
 "${reviewContent}"
 
 [매장 정보]
-- 매장 유형: ${brandContext}
+- 매장명: ${userProfile.business_name || '우리 매장'}
+- 업종: ${businessTypeLabel}
+- 브랜드 톤앤매너: ${brandToneLabel}
+
+[톤앤매너 가이드]
+${toneGuide}
 
 위 리뷰에 대한 답글을 작성해주세요. 80-120자 내외로 간결하게 작성하고, 고객이 언급한 구체적인 내용을 인용하세요.
+설정된 브랜드 톤앤매너에 맞게 작성하세요.
 답글만 작성하세요 (부가 설명 없이):`
 
   try {
@@ -281,13 +297,35 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { review_content, brand_context = '카페' } = body
+    const { review_content } = body
 
     if (!review_content || !review_content.trim()) {
       return NextResponse.json(
         { success: false, error: '리뷰 내용을 입력해주세요.' },
         { status: 400, headers: corsHeaders }
       )
+    }
+
+    // 사용자 프로필 조회
+    const supabase = getSupabaseClient()
+    const { data: userProfile, error: profileError } = await supabase
+      .from('users')
+      .select('business_name, business_type, brand_tone')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !userProfile) {
+      return NextResponse.json(
+        { success: false, error: '사용자 프로필을 찾을 수 없습니다.' },
+        { status: 404, headers: corsHeaders }
+      )
+    }
+
+    // 기본값 설정
+    const profile = {
+      business_name: userProfile.business_name || '',
+      business_type: userProfile.business_type || 'cafe',
+      brand_tone: userProfile.brand_tone || 'friendly',
     }
 
     // 콘텐츠 해시 생성
@@ -328,7 +366,7 @@ export async function POST(request: NextRequest) {
       generatedReply = await generateReplyWithAI(
         review_content,
         analysis.sentiment,
-        brand_context
+        profile
       )
     } catch (replyError) {
       console.error('답글 생성 실패:', replyError)

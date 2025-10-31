@@ -140,10 +140,89 @@ async function storeInCache(cacheData: {
   }
 }
 
+// 리뷰 메타데이터 추출
+function extractReviewMetadata(content: string, sentiment: string) {
+  // Unicode regex를 string으로 변환하여 ES5 호환성 유지
+  const emojiPattern = new RegExp('[\\u{1F300}-\\u{1F9FF}]', 'u')
+
+  const metadata = {
+    length: content.length,
+    hasEmoji: emojiPattern.test(content),
+    mentionsStaff: /사장|직원|점주|사모님|대표님|사장님|알바|아르바이트|매니저|주방장/.test(content),
+    mentionsFood: /맛|메뉴|음식|요리|반찬|국물|고기|밥|커피|디저트|케이크|빵|피자|치킨/.test(content),
+    mentionsService: /친절|서비스|응대|태도|빠르|느리|불친절/.test(content),
+    mentionsAtmosphere: /분위기|인테리어|깨끗|청결|넓|좁|조용|시끄|뷰|전망/.test(content),
+    mentionsPrice: /가격|비싸|저렴|합리적|가성비|만원|천원/.test(content),
+    isShortReview: content.length < 30,
+    isDetailedReview: content.length > 100,
+    hasQuestion: /\?|어떻게|언제|왜|무엇|어디/.test(content),
+  }
+
+  // 감정 강도 정교하게 계산
+  const positiveWords = (content.match(/맛있|좋아|친절|깨끗|추천|만족|최고|완벽|훌륭|감동|대박|굿|good|nice|짱|인정/g) || []).length
+  const negativeWords = (content.match(/별로|실망|불만|최악|끔찍|불친절|맛없|더럽|비싸|느리|불편|짜증|화남/g) || []).length
+
+  const adjustedStrength = sentiment === 'positive'
+    ? 0.6 + (positiveWords * 0.08)
+    : sentiment === 'negative'
+    ? 0.6 + (negativeWords * 0.08)
+    : 0.5
+
+  return {
+    ...metadata,
+    adjustedStrength: Math.min(adjustedStrength, 1.0),
+    emotionalIntensity: positiveWords + negativeWords
+  }
+}
+
+// 답글 스타일 결정
+function getReplyStyle(metadata: any) {
+  const styles = []
+
+  if (metadata.isShortReview) {
+    styles.push('concise')
+  }
+
+  if (metadata.isDetailedReview) {
+    styles.push('detailed')
+  }
+
+  if (metadata.mentionsStaff) {
+    styles.push('staff_focused')
+  }
+
+  if (metadata.mentionsFood) {
+    styles.push('food_focused')
+  }
+
+  if (metadata.mentionsPrice) {
+    styles.push('value_focused')
+  }
+
+  if (metadata.hasQuestion) {
+    styles.push('qa_format')
+  }
+
+  return styles.length > 0 ? styles : ['standard']
+}
+
+// Temperature 동적 조정
+function getTemperature(sentiment: string, emotionalIntensity: number): number {
+  if (sentiment === 'negative') {
+    return 0.5 // 부정 리뷰는 일관성 있게
+  }
+
+  if (sentiment === 'positive') {
+    return emotionalIntensity > 3 ? 0.9 : 0.8 // 긍정 리뷰는 다양하게
+  }
+
+  return 0.7 // 중립
+}
+
 // 간단한 감정 분석 (룰 기반)
 function quickSentimentAnalysis(content: string) {
-  const positiveKeywords = ['맛있', '좋아', '친절', '깨끗', '추천', '만족', '최고', '완벽', '훌륭']
-  const negativeKeywords = ['별로', '실망', '불만', '최악', '끔찍', '불친절', '맛없', '더럽']
+  const positiveKeywords = ['맛있', '좋아', '친절', '깨끗', '추천', '만족', '최고', '완벽', '훌륭', '감동', '대박']
+  const negativeKeywords = ['별로', '실망', '불만', '최악', '끔찍', '불친절', '맛없', '더럽', '비싸', '느리']
 
   let positiveScore = 0
   let negativeScore = 0
@@ -180,90 +259,88 @@ async function generateReplyWithAI(
   completionTokens: number
   totalTokens: number
 }> {
-  const systemPrompts: Record<string, string> = {
-    positive: `당신은 네이버 플레이스 리뷰 답글 전문가입니다.
+  // 메타데이터 추출
+  const metadata = extractReviewMetadata(reviewContent, sentiment)
 
-긍정 리뷰 답글 작성 가이드:
-1. 고객이 만족한 구체적 요소를 언급하며 감사 표현
-2. 재방문 시 제공할 수 있는 가치 제안
-3. 따뜻하고 친근한 톤 유지
+  // 답글 스타일 결정
+  const styles = getReplyStyle(metadata)
 
-답글 작성 원칙:
-- 50-150자 내외로 간결하게
-- 고객이 언급한 구체적 내용(맛, 서비스, 분위기 등) 인용
-- 감사 표현 → 공감 → 재방문 유도 구조
-- 과도한 이모지 지양 (1-2개 이내)
-- 업체 특성을 반영한 자연스러운 문장
+  // Temperature 동적 조정
+  const temperature = getTemperature(sentiment, metadata.emotionalIntensity)
 
-예시 패턴:
-"{구체적_칭찬_요소}에 만족하셨다니 정말 기쁩니다! 다음에도 좋은 경험 드릴게요. 감사합니다 😊"`,
-
-    negative: `당신은 네이버 플레이스 리뷰 답글 전문가입니다.
-
-부정 리뷰 답글 작성 가이드:
-1. 즉각적 사과와 구체적 문제 인식
-2. 개선 의지 명확히 표현
-3. 변명보다는 해결 중심으로 접근
-
-답글 작성 원칙:
-- 50-150자 내외로 간결하게
-- 진심 어린 사과로 시작
-- 고객이 지적한 구체적 문제점 언급
-- 명확한 개선 약속
-- 변명이나 책임 회피 금지
-- 필요시 오프라인 소통 채널 제안
-
-예시 패턴:
-"불편을 드려 진심으로 죄송합니다. {구체적_문제}는 즉시 개선하겠습니다. 더 나은 모습으로 찾아뵙고 싶습니다."`,
-
-    neutral: `당신은 네이버 플레이스 리뷰 답글 전문가입니다.
-
-중립 리뷰 답글 작성 가이드:
-1. 아쉬운 부분 공감 표현
-2. 긍정 요소 강화 및 개선 약속
-3. 다음 방문 시 더 나은 경험 제안
-
-답글 작성 원칙:
-- 50-150자 내외로 간결하게
-- 방문 감사 표현
-- 긍정적 요소는 강화하고 아쉬운 점은 개선 약속
-- 고객의 피드백을 진지하게 받아들임을 표현
-- 재방문 유도
-
-예시 패턴:
-"소중한 리뷰 감사합니다! {긍정_요소}는 만족하셨지만 {아쉬운_점}은 보완하겠습니다. 다음엔 더 좋은 경험 드릴게요!"`,
+  // 스타일별 지침
+  const styleInstructions: Record<string, string> = {
+    concise: '짧은 리뷰이므로 40-60자 내외로 간결하게 답변하세요.',
+    detailed: '고객이 여러 요소를 언급했으므로 각 포인트에 대해 구체적으로 답변하세요 (100-150자).',
+    staff_focused: '직원/팀에 대한 언급이 있으므로 이를 중심으로 답변하세요.',
+    food_focused: '음식/메뉴에 대한 언급이 있으므로 특정 메뉴를 자연스럽게 언급하세요.',
+    value_focused: '가격에 대한 언급이 있으므로 가치와 품질을 강조하세요.',
+    qa_format: '질문이 포함되어 있으므로 먼저 질문에 답한 후 감사 인사를 하세요.',
+    standard: '80-120자 내외로 자연스럽게 답변하세요.'
   }
 
-  // 사용자 프로필 정보를 라벨로 변환
+  const activeStyles = styles.map(s => styleInstructions[s] || '').join(' ')
+
+  // 감정별 맥락
+  const sentimentContext: Record<string, string> = {
+    positive: metadata.emotionalIntensity > 3
+      ? '고객이 매우 열정적으로 칭찬했으므로, 그에 상응하는 진심 어린 감사를 표현하세요.'
+      : '고객의 만족에 감사하고, 다음 방문 시 기대할 수 있는 것을 제안하세요.',
+    negative: metadata.emotionalIntensity > 3
+      ? '고객이 매우 불만족했으므로, 즉각적이고 구체적인 사과와 해결책을 제시하세요.'
+      : '고객의 불편을 인정하고, 개선 의지를 명확히 밝히세요.',
+    neutral: '고객이 방문해준 것에 감사하고, 더 나은 경험을 위한 노력을 약속하세요.'
+  }
+
+  // 업종별 특화 가이드 (간략화)
   const businessTypeLabel = getBusinessTypeLabel(userProfile.business_type)
   const brandToneLabel = getBrandToneLabel(userProfile.brand_tone)
   const toneGuide = getToneGuide(userProfile.brand_tone)
 
-  const prompt = `[리뷰 내용]
-"${reviewContent}"
+  // 향상된 시스템 프롬프트
+  const systemPrompt = `당신은 ${userProfile.business_name || '우리 매장'}의 리뷰 답글 전문가입니다.
+매번 다른 표현과 구조를 사용하여 자연스럽고 진정성 있는 답글을 작성하세요.
+템플릿처럼 들리지 않도록 하되, 고객이 언급한 구체적인 단어나 표현을 자연스럽게 인용하세요.`
 
-[매장 정보]
-- 매장명: ${userProfile.business_name || '우리 매장'}
-- 업종: ${businessTypeLabel}
-- 브랜드 톤앤매너: ${brandToneLabel}
+  // 향상된 프롬프트
+  const prompt = `[리뷰 정보]
+내용: "${reviewContent}"
+감정: ${sentiment} (강도: ${metadata.adjustedStrength.toFixed(2)})
+길이: ${metadata.length}자
 
-[톤앤매너 가이드]
+[답글 작성 지침]
+${activeStyles}
+
+${sentimentContext[sentiment]}
+
+[업종 - ${businessTypeLabel}]
+- 업종 특성을 반영하여 답변하세요
+- ${metadata.mentionsFood ? '음식/메뉴를 구체적으로 언급하세요' : ''}
+- ${metadata.mentionsStaff ? '직원/팀에 대해 언급하세요' : ''}
+- ${metadata.mentionsAtmosphere ? '분위기/공간에 대해 언급하세요' : ''}
+
+[브랜드 톤 - ${brandToneLabel}]
 ${toneGuide}
 
-위 리뷰에 대한 답글을 작성해주세요. 80-120자 내외로 간결하게 작성하고, 고객이 언급한 구체적인 내용을 인용하세요.
-설정된 브랜드 톤앤매너에 맞게 작성하세요.
-답글만 작성하세요 (부가 설명 없이):`
+[다양성 확보]
+- 매번 다른 시작 문구를 사용하세요 (감사합니다 / 방문 감사드립니다 / 소중한 리뷰 등)
+- 이모지는 업종과 톤에 맞게 0-2개만 사용하세요
+- 고객이 사용한 표현을 그대로 인용하면 더 진정성이 느껴집니다
+
+위 가이드를 참고하여 답글을 작성하세요. 답글만 작성하고 부가 설명은 하지 마세요.`
 
   try {
     const openai = getOpenAIClient()
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: systemPrompts[sentiment] || systemPrompts['neutral'] },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: prompt },
       ],
-      temperature: 0.7,
+      temperature, // 동적으로 조정된 값 (0.5~0.9)
       max_tokens: 250,
+      presence_penalty: 0.6, // 반복 표현 방지
+      frequency_penalty: 0.3, // 다양성 증가
     })
 
     const reply = response.choices[0].message.content?.trim() || '답글 생성에 실패했습니다.'

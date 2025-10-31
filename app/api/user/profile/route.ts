@@ -143,28 +143,15 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // 허용된 값 검증
-    const allowedBusinessTypes = [
-      'cafe',
-      'restaurant_korean',
-      'restaurant_chinese',
-      'restaurant_japanese',
-      'restaurant_western',
-      'restaurant_buffet',
-      'bakery',
-      'dessert',
-      'fastfood',
-      'bar',
-      'salon',
-      'nail',
-      'spa',
-      'fitness',
-      'hospital',
-      'dental',
-      'hotel',
-      'retail',
-      'other',
-    ]
+    // business_type 길이 검증 (커스텀 입력 허용)
+    if (business_type.length > 50) {
+      return NextResponse.json(
+        { success: false, error: '업종은 50자 이내로 입력해주세요.' },
+        { status: 400, headers: corsHeaders }
+      )
+    }
+
+    // 허용된 톤앤매너 값 검증
     const allowedBrandTones = [
       'friendly',
       'professional',
@@ -174,13 +161,6 @@ export async function PUT(request: NextRequest) {
       'luxury',
       'minimalist',
     ]
-
-    if (!allowedBusinessTypes.includes(business_type)) {
-      return NextResponse.json(
-        { success: false, error: '유효하지 않은 업종입니다.' },
-        { status: 400, headers: corsHeaders }
-      )
-    }
 
     if (!allowedBrandTones.includes(brand_tone)) {
       return NextResponse.json(

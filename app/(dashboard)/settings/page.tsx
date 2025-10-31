@@ -15,6 +15,8 @@ export default function SettingsPage() {
     business_type: 'cafe',
     brand_tone: 'friendly',
   })
+  const [customBusinessType, setCustomBusinessType] = useState('')
+  const [isCustomType, setIsCustomType] = useState(false)
 
   useEffect(() => {
     fetchProfile()
@@ -44,6 +46,14 @@ export default function SettingsPage() {
       const data = await response.json()
       if (data.success && data.profile) {
         setProfile(data.profile)
+
+        // 커스텀 업종인지 확인 (기본 옵션에 없는 경우)
+        const isCustom = !BUSINESS_TYPES.some(t => t.value === data.profile.business_type)
+        if (isCustom) {
+          setIsCustomType(true)
+          setCustomBusinessType(data.profile.business_type)
+          setProfile(prev => ({ ...prev, business_type: 'custom' }))
+        }
       }
     } catch (error) {
       console.error('프로필 로드 실패:', error)
@@ -65,13 +75,25 @@ export default function SettingsPage() {
         return
       }
 
+      // 커스텀 업종인 경우 직접 입력한 값 사용
+      const finalBusinessType = isCustomType ? customBusinessType.trim() : profile.business_type
+
+      if (!finalBusinessType) {
+        setMessage({ type: 'error', text: '업종을 입력해주세요.' })
+        setSaving(false)
+        return
+      }
+
       const response = await fetch('/api/user/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(profile),
+        body: JSON.stringify({
+          ...profile,
+          business_type: finalBusinessType,
+        }),
       })
 
       const data = await response.json()
@@ -158,7 +180,14 @@ export default function SettingsPage() {
               <select
                 id="business_type"
                 value={profile.business_type}
-                onChange={(e) => setProfile({ ...profile, business_type: e.target.value })}
+                onChange={(e) => {
+                  const value = e.target.value
+                  setProfile({ ...profile, business_type: value })
+                  setIsCustomType(value === 'custom')
+                  if (value !== 'custom') {
+                    setCustomBusinessType('')
+                  }
+                }}
                 required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
@@ -171,6 +200,24 @@ export default function SettingsPage() {
               <p className="text-sm text-gray-500 mt-1">
                 운영하시는 업종을 선택하세요
               </p>
+
+              {/* 직접 입력 필드 */}
+              {isCustomType && (
+                <div className="mt-3">
+                  <input
+                    type="text"
+                    value={customBusinessType}
+                    onChange={(e) => setCustomBusinessType(e.target.value)}
+                    placeholder="업종을 직접 입력하세요 (예: 애견카페, 북카페, 공유오피스)"
+                    maxLength={50}
+                    required
+                    className="w-full px-4 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-blue-50"
+                  />
+                  <p className="text-sm text-blue-600 mt-1">
+                    💡 입력하신 업종에 맞는 답글이 생성됩니다 (최대 50자)
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* 브랜드 톤앤매너 */}

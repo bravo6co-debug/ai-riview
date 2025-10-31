@@ -18,7 +18,7 @@ export const BUSINESS_TYPES = [
   { value: 'dental', label: '치과' },
   { value: 'hotel', label: '숙박/호텔' },
   { value: 'retail', label: '소매점' },
-  { value: 'other', label: '기타' },
+  { value: 'custom', label: '직접 입력' },
 ] as const
 
 // 브랜드 톤앤매너 (Brand Tone) 옵션
@@ -74,7 +74,13 @@ export const TONE_GUIDES: Record<string, string> = {
 // 업종별 라벨 매핑
 export const getBusinessTypeLabel = (value: string): string => {
   const type = BUSINESS_TYPES.find((t) => t.value === value)
+  // 기본 옵션에 없으면 사용자가 직접 입력한 값으로 간주
   return type?.label || value
+}
+
+// 업종이 커스텀 입력인지 확인
+export const isCustomBusinessType = (value: string): boolean => {
+  return !BUSINESS_TYPES.some((t) => t.value === value)
 }
 
 // 톤앤매너 라벨 매핑

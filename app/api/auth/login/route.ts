@@ -74,12 +74,25 @@ export async function POST(request: NextRequest) {
       .update({ last_login: new Date().toISOString() })
       .eq('id', user.id)
 
-    // JWT 토큰 생성
+    // Check if user account is active (only if column exists)
+    if (user.is_active === false) {
+      return NextResponse.json(
+        { success: false, error: '비활성화된 계정입니다. 관리자에게 문의하세요.' },
+        { status: 403, headers: corsHeaders }
+      )
+    }
+
+    // Determine user_role (fallback to old is_admin if user_role doesn't exist)
+    const userRole = user.user_role || (user.is_admin ? 'super_admin' : 'customer')
+
+    // JWT 토큰 생성 (user_role 포함)
     const secret = new TextEncoder().encode(process.env.JWT_SECRET!)
     const token = await new SignJWT({
       id: user.id,
       username: user.username,
-      is_admin: user.is_admin,
+      is_admin: user.is_admin, // DEPRECATED - keeping for backwards compatibility
+      user_role: userRole,
+      parent_admin_id: user.parent_admin_id || null,
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
@@ -92,7 +105,12 @@ export async function POST(request: NextRequest) {
       user: {
         id: user.id,
         username: user.username,
-        is_admin: user.is_admin,
+        is_admin: user.is_admin, // DEPRECATED
+        user_role: userRole,
+        parent_admin_id: user.parent_admin_id || null,
+        business_name: user.business_name || null,
+        business_type: user.business_type || null,
+        brand_tone: user.brand_tone || null,
       },
     }, { headers: corsHeaders })
   } catch (error) {

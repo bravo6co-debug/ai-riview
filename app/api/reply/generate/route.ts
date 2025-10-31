@@ -3,6 +3,12 @@ import { createClient } from '@supabase/supabase-js'
 import { jwtVerify } from 'jose'
 import OpenAI from 'openai'
 import { getBusinessTypeLabel, getBrandToneLabel, getToneGuide } from '@/lib/constants'
+import {
+  checkQuota,
+  logApiUsage,
+  estimateCost,
+  initializeUserQuota,
+} from '@/lib/usage-tracker'
 
 // Force Node.js runtime for bcryptjs
 export const runtime = 'nodejs'
@@ -168,7 +174,12 @@ async function generateReplyWithAI(
     business_type: string
     brand_tone: string
   }
-) {
+): Promise<{
+  reply: string
+  promptTokens: number
+  completionTokens: number
+  totalTokens: number
+}> {
   const systemPrompts: Record<string, string> = {
     positive: `당신은 네이버 플레이스 리뷰 답글 전문가입니다.
 
@@ -255,7 +266,14 @@ ${toneGuide}
       max_tokens: 250,
     })
 
-    return response.choices[0].message.content?.trim() || '답글 생성에 실패했습니다.'
+    const reply = response.choices[0].message.content?.trim() || '답글 생성에 실패했습니다.'
+
+    return {
+      reply,
+      promptTokens: response.usage?.prompt_tokens || 0,
+      completionTokens: response.usage?.completion_tokens || 0,
+      totalTokens: response.usage?.total_tokens || 0,
+    }
   } catch (error) {
     console.error('OpenAI API 오류:', error)
     // 템플릿 폴백
@@ -275,11 +293,22 @@ ${toneGuide}
     }
 
     const templateList = templates[sentiment] || templates['neutral']
-    return templateList[Math.floor(Math.random() * templateList.length)]
+    const reply = templateList[Math.floor(Math.random() * templateList.length)]
+
+    return {
+      reply,
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+    }
   }
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now()
+  let userId: string | null = null
+  let apiCallSuccess = false
+
   try {
     // JWT 토큰 검증
     const authHeader = request.headers.get('Authorization')
@@ -297,6 +326,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: '유효하지 않은 토큰입니다.' },
         { status: 401, headers: corsHeaders }
+      )
+    }
+
+    userId = user.id as string
+
+    // 사용량 쿼터 확인
+    const quotaCheck = await checkQuota(userId)
+    if (!quotaCheck.allowed) {
+      const executionTime = Date.now() - startTime
+
+      // 쿼터 초과 로그 기록
+      await logApiUsage({
+        userId,
+        apiType: 'openai_chat',
+        endpoint: '/api/reply/generate',
+        success: false,
+        errorMessage: quotaCheck.reason || '사용량 한도 초과',
+        executionTimeMs: executionTime,
+      })
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: quotaCheck.reason || '사용량 한도를 초과했습니다.',
+          quota: quotaCheck.quota,
+          currentUsage: quotaCheck.currentUsage,
+        },
+        { status: 429, headers: corsHeaders } // 429 Too Many Requests
       )
     }
 
@@ -376,14 +433,22 @@ export async function POST(request: NextRequest) {
       }).catch(err => console.error('캐시 저장 실패:', err))
     }
 
-    // 답글 생성
-    let generatedReply
+    // 답글 생성 (토큰 사용량 추적)
+    let generatedReply: string
+    let promptTokens = 0
+    let completionTokens = 0
+    let totalTokens = 0
+
     try {
-      generatedReply = await generateReplyWithAI(
+      const aiResult = await generateReplyWithAI(
         review_content,
         analysis.sentiment,
         profile
       )
+      generatedReply = aiResult.reply
+      promptTokens = aiResult.promptTokens
+      completionTokens = aiResult.completionTokens
+      totalTokens = aiResult.totalTokens
     } catch (replyError) {
       console.error('답글 생성 실패:', replyError)
       // 폴백 템플릿 사용
@@ -399,7 +464,7 @@ export async function POST(request: NextRequest) {
     try {
       const supabase = getSupabaseClient()
       await supabase.from('reply_history').insert({
-        user_id: user.id as string,
+        user_id: userId,
         review_content,
         generated_reply: generatedReply,
         sentiment: analysis.sentiment,
@@ -412,6 +477,28 @@ export async function POST(request: NextRequest) {
       // DB 저장 실패해도 답글은 반환
     }
 
+    // API 사용량 로그 기록
+    const executionTime = Date.now() - startTime
+    const cost = estimateCost('gpt-4o-mini', promptTokens, completionTokens)
+
+    apiCallSuccess = true
+
+    // 비동기로 로그 기록 (응답 속도에 영향 없도록)
+    logApiUsage({
+      userId,
+      apiType: 'openai_chat',
+      endpoint: '/api/reply/generate',
+      modelUsed: 'gpt-4o-mini',
+      promptTokens,
+      completionTokens,
+      totalTokens,
+      estimatedCost: cost,
+      requestSize: JSON.stringify({ review_content }).length,
+      responseSize: JSON.stringify({ reply: generatedReply }).length,
+      success: true,
+      executionTimeMs: executionTime,
+    }).catch((err) => console.error('사용량 로그 기록 실패:', err))
+
     return NextResponse.json({
       success: true,
       reply: generatedReply,
@@ -419,9 +506,31 @@ export async function POST(request: NextRequest) {
       sentiment_strength: analysis.strength,
       topics: [],
       keywords: [],
+      // Optional: Include usage stats in development
+      ...(process.env.NODE_ENV === 'development' && {
+        _debug: {
+          tokens: totalTokens,
+          cost: cost.toFixed(6),
+          executionTime: `${executionTime}ms`,
+        },
+      }),
     }, { headers: corsHeaders })
   } catch (error) {
     console.error('답글 생성 오류:', error)
+
+    // 오류 발생 시 로그 기록
+    if (userId) {
+      const executionTime = Date.now() - startTime
+      await logApiUsage({
+        userId,
+        apiType: 'openai_chat',
+        endpoint: '/api/reply/generate',
+        success: false,
+        errorMessage: String(error),
+        executionTimeMs: executionTime,
+      }).catch((err) => console.error('사용량 로그 기록 실패:', err))
+    }
+
     return NextResponse.json(
       { success: false, error: '서버 오류가 발생했습니다.' },
       { status: 500, headers: corsHeaders }

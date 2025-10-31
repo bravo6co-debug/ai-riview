@@ -11,6 +11,10 @@ interface User {
   contact_email?: string
   is_active: boolean
   created_at: string
+  parent_admin?: {
+    username: string
+    company_name?: string
+  }
 }
 
 interface UsageSummary {
@@ -57,23 +61,43 @@ export default function SuperAdminDashboard() {
 
   const loadDashboardData = async (token: string) => {
     try {
-      // TODO: API 엔드포인트 구현 필요
-      // const response = await fetch('/api/super-admin/overview', {
-      //   headers: { Authorization: `Bearer ${token}` }
-      // })
-      // const data = await response.json()
-
-      // 임시 데이터
-      setUsageSummary({
-        totalRequests: 0,
-        totalTokens: 0,
-        totalCost: 0,
-        activeUsers: 0,
+      // Load overview data
+      const overviewRes = await fetch('/api/super-admin/overview', {
+        headers: { Authorization: `Bearer ${token}` }
       })
-      setSubAdmins([])
-      setCustomers([])
+      const overviewData = await overviewRes.json()
+
+      if (overviewData.success) {
+        setUsageSummary({
+          totalRequests: overviewData.overview.totalRequests,
+          totalTokens: overviewData.overview.totalTokens,
+          totalCost: overviewData.overview.totalCost,
+          activeUsers: overviewData.overview.activeUsers,
+        })
+      }
+
+      // Load sub-admins
+      const subAdminsRes = await fetch('/api/super-admin/sub-admins', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const subAdminsData = await subAdminsRes.json()
+
+      if (subAdminsData.success) {
+        setSubAdmins(subAdminsData.subAdmins)
+      }
+
+      // Load customers
+      const customersRes = await fetch('/api/super-admin/customers', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const customersData = await customersRes.json()
+
+      if (customersData.success) {
+        setCustomers(customersData.customers)
+      }
     } catch (error) {
       console.error('Failed to load dashboard data:', error)
+      alert('대시보드 데이터를 불러오는데 실패했습니다.')
     } finally {
       setLoading(false)
     }
@@ -90,19 +114,28 @@ export default function SuperAdminDashboard() {
     const token = localStorage.getItem('token')
 
     try {
-      // TODO: API 구현 필요
-      // const response = await fetch('/api/super-admin/sub-admins', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     Authorization: `Bearer ${token}`
-      //   },
-      //   body: JSON.stringify(newSubAdmin)
-      // })
+      const response = await fetch('/api/super-admin/sub-admins', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(newSubAdmin)
+      })
 
-      alert('하위 관리자 추가 기능은 곧 구현될 예정입니다.')
-      setShowAddSubAdmin(false)
-      setNewSubAdmin({ username: '', password: '', company_name: '', contact_email: '' })
+      const data = await response.json()
+
+      if (data.success) {
+        alert('하위 관리자가 추가되었습니다.')
+        setShowAddSubAdmin(false)
+        setNewSubAdmin({ username: '', password: '', company_name: '', contact_email: '' })
+        // Reload data
+        if (token) {
+          loadDashboardData(token)
+        }
+      } else {
+        alert(data.error || '하위 관리자 추가에 실패했습니다.')
+      }
     } catch (error) {
       console.error('Failed to add sub-admin:', error)
       alert('하위 관리자 추가에 실패했습니다.')
@@ -260,7 +293,12 @@ export default function SuperAdminDashboard() {
                     {customers.map((customer) => (
                       <tr key={customer.id}>
                         <td className="px-6 py-4 whitespace-nowrap">{customer.username}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">-</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {customer.parent_admin
+                            ? `${customer.parent_admin.username}${customer.parent_admin.company_name ? ` (${customer.parent_admin.company_name})` : ''}`
+                            : '-'
+                          }
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
                             className={`px-2 py-1 text-xs rounded ${

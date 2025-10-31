@@ -10,6 +10,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false)
   const [sentiment, setSentiment] = useState<string | null>(null)
   const [user, setUser] = useState<any>(null)
+  const [copySuccess, setCopySuccess] = useState(false)
 
   useEffect(() => {
     // 로그인 확인
@@ -51,9 +52,6 @@ export default function DashboardPage() {
       if (data.success) {
         setGeneratedReply(data.reply)
         setSentiment(data.sentiment)
-
-        // 자동 클립보드 복사
-        await navigator.clipboard.writeText(data.reply)
       } else {
         alert(`오류: ${data.error}`)
       }
@@ -66,7 +64,14 @@ export default function DashboardPage() {
   }
 
   const copyToClipboard = async () => {
-    await navigator.clipboard.writeText(generatedReply)
+    try {
+      await navigator.clipboard.writeText(generatedReply)
+      setCopySuccess(true)
+      setTimeout(() => setCopySuccess(false), 2000)
+    } catch (error) {
+      console.error('클립보드 복사 실패:', error)
+      alert('클립보드 복사에 실패했습니다. 다시 시도해주세요.')
+    }
   }
 
   const handleReset = () => {
@@ -192,9 +197,13 @@ export default function DashboardPage() {
               </div>
               <button
                 onClick={copyToClipboard}
-                className="w-full py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className={`w-full py-2 px-4 border rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${
+                  copySuccess
+                    ? 'border-green-500 bg-green-50 text-green-700'
+                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-indigo-500'
+                }`}
               >
-                클립보드에 복사
+                {copySuccess ? '✓ 복사 완료!' : '📋 클립보드에 복사'}
               </button>
             </div>
           )}

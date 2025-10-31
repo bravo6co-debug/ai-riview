@@ -23,8 +23,6 @@ export default function SubAdminDashboard() {
   const [newCustomer, setNewCustomer] = useState({
     username: '',
     business_name: '',
-    business_type: '',
-    brand_tone: '',
   })
 
   useEffect(() => {
@@ -91,7 +89,7 @@ export default function SubAdminDashboard() {
       if (data.success) {
         alert(data.message || '고객이 추가되었습니다.')
         setShowAddCustomer(false)
-        setNewCustomer({ username: '', business_name: '', business_type: '', brand_tone: '' })
+        setNewCustomer({ username: '', business_name: '' })
         if (token) {
           loadCustomers(token)
         }
@@ -279,43 +277,6 @@ export default function SubAdminDashboard() {
                       setNewCustomer({ ...newCustomer, business_name: e.target.value })
                     }
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    업종
-                  </label>
-                  <select
-                    className="w-full px-3 py-2 border border-gray-300 rounded"
-                    value={newCustomer.business_type}
-                    onChange={(e) =>
-                      setNewCustomer({ ...newCustomer, business_type: e.target.value })
-                    }
-                  >
-                    <option value="">선택하세요</option>
-                    <option value="cafe">카페</option>
-                    <option value="restaurant">음식점</option>
-                    <option value="beauty">미용실</option>
-                    <option value="retail">소매점</option>
-                    <option value="service">서비스업</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    브랜드 톤
-                  </label>
-                  <select
-                    className="w-full px-3 py-2 border border-gray-300 rounded"
-                    value={newCustomer.brand_tone}
-                    onChange={(e) =>
-                      setNewCustomer({ ...newCustomer, brand_tone: e.target.value })
-                    }
-                  >
-                    <option value="">선택하세요</option>
-                    <option value="friendly">친근한</option>
-                    <option value="professional">전문적인</option>
-                    <option value="casual">캐주얼한</option>
-                    <option value="formal">격식있는</option>
-                  </select>
                 </div>
               </div>
               <div className="mt-6 flex gap-2">

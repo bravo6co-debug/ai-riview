@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { username, business_name, business_type, brand_tone } = body
+    const { username, business_name } = body
 
     if (!username) {
       return NextResponse.json(
@@ -149,8 +149,8 @@ export async function POST(request: NextRequest) {
         is_admin: false, // DEPRECATED field
         parent_admin_id: user.id as string,
         business_name: business_name || null,
-        business_type: business_type || 'cafe',
-        brand_tone: brand_tone || 'friendly',
+        business_type: 'cafe', // 기본값 (고객이 설정에서 변경)
+        brand_tone: 'friendly', // 기본값 (고객이 설정에서 변경)
         is_active: true,
       })
       .select()

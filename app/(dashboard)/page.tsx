@@ -117,7 +117,7 @@ export default function DashboardPage() {
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">
-            네이버 플레이스 답글 생성기
+            네이버 플레이스 리뷰 답글 999플러스 서비스
           </h1>
           <div className="flex items-center gap-4">
             <button
@@ -207,6 +207,13 @@ export default function DashboardPage() {
               </button>
             </div>
           )}
+
+          {/* 설정 안내 */}
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800 text-center">
+              💡 설정에서 기본 셋팅을 하셔야 합니다.
+            </p>
+          </div>
         </div>
       </main>
     </div>
